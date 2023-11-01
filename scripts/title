@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+#
+# Copyright 2023 BobRos
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+import sys
+import json
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import String
+from rclpy.qos import QoSProfile
+from rclpy.qos import DurabilityPolicy
+
+IPC_GET_TITLE = '{ "command": ["get_property", "media-title"], "request_id": %s }'
+
+class TitleNode(Node):
+    """Title update ROS Node for MpvRos playlists."""  
+    def __init__(self):
+        super().__init__('title')
+        self.last_event = None
+        self.title = ""
+        self.timer = self.create_timer(4, self.poll_mpv)
+
+        latching_qos = QoSProfile(depth=1,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        self.pub_title = self.create_publisher(
+            String, 'title', qos_profile=latching_qos)
+        self.pub_ipc = self.create_publisher(String, 'ipc_in', 10)
+        self.sub = self.create_subscription(String, 'ipc_out',
+            self.ipc_callback, 10)
+        
+    def publish(self, pub, data):
+        """Publish data using given publisher."""
+        msg = String()
+        msg.data = data
+        pub.publish(msg)
+        self.get_logger().info(data)
+
+    def ipc_callback(self, msg):
+        """Receive events from MPV player."""
+        self.get_logger().debug(msg.data)
+        if str(4711) in msg.data:
+            try: j = json.loads(msg.data)
+            except: pass
+            if 'data' in j and self.title != j['data']:
+                self.title = j['data']
+                self.publish(self.pub_title, self.title)
+            self.last_event = msg.data
+        elif "playback-restart" in msg.data:
+            self.publish(self.pub_ipc, IPC_GET_TITLE % 4711)
+
+    def poll_mpv(self):
+        """Poll MPV player to request the current title."""
+        if not self.last_event:
+            self.publish(self.pub_ipc, IPC_GET_TITLE % 4711)
+
+        
+def main():
+    try:
+        rclpy.init(args=sys.argv)
+        n = TitleNode()
+        rclpy.spin(n)
+        rclpy.shutdown()
+    except KeyboardInterrupt:
+        pass
+
+if __name__ == '__main__':
+    main()
