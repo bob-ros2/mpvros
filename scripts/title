@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import sys
 import json
 import rclpy
 from rclpy.node import Node
@@ -68,7 +67,7 @@ class TitleNode(Node):
         
 def main():
     try:
-        rclpy.init(args=sys.argv)
+        rclpy.init(args=None)
         n = TitleNode()
         rclpy.spin(n)
         rclpy.shutdown()
