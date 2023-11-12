@@ -105,8 +105,12 @@ maintain running MPV playing orders.
 # start scheduler to wait for incoming MPV playing orders
 ros2 run mpvros scheduler
 
-# Publish a playing order to the scheduler topic
+# publish a playing order to the scheduler topic
 ros2 topic pub --once /schedule std_msgs/msg/String "{data: '/your/path/vid.mp4 --no-border --window-scale=0.4 --geometry=50%:50% --loop=inf'}"
+
+# send playing order via action service, if parameter id is filled a single instance with this id will be forced.
+ros2 action send_goal /SuperBob/schedule mpvros/action/Schedule "{id: bob, args: /path/to/video.mkv --loop=inf --geometry=50%:50% --window-scale=0.4 }"
+
 ```
 
 ## Subscribed Topics
@@ -160,8 +164,4 @@ ros2 topic pub --once /ipc_in std_msgs/String "data: 'show-text \${playback-time
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first
 to discuss what you would like to change.
-
 Please make sure to update tests as appropriate.
-
-## License
-[Apache2.0](https://www.apache.org/licenses/LICENSE-2.0)
