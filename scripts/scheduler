@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
+import signal
 import rclpy
 import subprocess
 from random import choice
@@ -47,37 +49,48 @@ class SchedulerNode(Node):
         self._action_server = ActionServer(
             self, Schedule, 'schedule', self.action_callback)
         
-        self.timer = self.create_timer(0.1, self.process)
+        self.timer = self.create_timer(0.1, self.maintain_pids)
 
     def pid_running(self, p):
         """Poll a PID and return if it is still running."""
         is_running = p['pid'].poll() is None
         if not is_running:
             p['pid'].terminate()
+            self.get_logger().info("drop pid "+str(p['pid'].pid))
         return is_running
 
-    def process(self):
+    def maintain_pids(self):
         """Check if a MPV ROS node despawns.
         Despawned PIDs are removed from the list."""
         self.pids = [p for p in self.pids if self.pid_running(p)]
 
-    def schedule(self, s):
-        """Schedule MPV ROS node."""
-        rand = None
-        if not s.startswith("ros2"):
-           rand = ''.join(map(choice,["bcdfghjklmnpqrstvwxz","aeiouy"]*4))
-           ipc = " ipc_server:=/tmp/mpvros-"+rand+".sock"
-           list = ','.join("\'{0}\'".format(w) for w in s.split())
-           args = ' args:=[' + list + ']'
-           title = ' title:=true'
-           ns = " ns:="+self.spawn_ns + rand
-           s = "ros2 launch mpvros mpv.launch.py" + ipc + args + ns + title
-        self.get_logger().info(s)
-        args = s.split()
-        p = subprocess.Popen(args)
-        d = { 'pid': p, 'args': args, 'rand': rand}
+    def terminate_id(self, id):
+        for p in self.pids:
+            if p['id'] == id:
+                os.killpg(os.getpgid(p['pid'].pid), signal.SIGTERM)
+                self.get_logger().info("terminate id "+id)
+        self.maintain_pids()
+
+    def schedule(self, args, id=None):
+        """Schedule MPV ROS node with given args. If id is provided a 
+        previously started process with same id will be terminated first 
+        before starting the new one."""
+        if not args.startswith("ros2"):
+            if not id:
+                id = ''.join(map(choice,["bcdfghjklmnpqrstvwxz","aeiouy"]*4))
+            ipc = " ipc_server:=/tmp/mpvros-"+id+".sock"
+            list = ','.join("\'{0}\'".format(w) for w in args.split())
+            args = ' args:=[' + list + ']'
+            title = ' title:=true'
+            ns = " ns:="+self.spawn_ns + id
+            args = "ros2 launch mpvros mpv.launch.py" + ipc + args + ns + title
+        self.get_logger().info(args)
+        if id: self.terminate_id(id)
+        args = args.split()
+        p = subprocess.Popen(args, preexec_fn=os.setsid)#, start_new_session=True)
+        d = { 'pid': p, 'args': args, 'id': id}
         if p: self.pids.append(d)
-        return rand
+        return id
 
     def schedule_callback(self, msg):
         """Schedule MPV ROS node from topic."""
@@ -89,7 +102,9 @@ class SchedulerNode(Node):
         feedback_msg.state = "starting player ..."
         goal_handle.publish_feedback(feedback_msg)
         result = Schedule.Result()
-        name = self.schedule(goal_handle.request.args)
+        name = self.schedule(
+            goal_handle.request.args,
+            goal_handle.request.id)
         result.result = self.spawn_ns+str(name)
         goal_handle.succeed()
         return result
@@ -99,7 +114,10 @@ def main():
     try:
         rclpy.init(args=None)
         n = SchedulerNode()
-        rclpy.spin(n)
+        try:
+            rclpy.spin(n)
+        except Exception as e: 
+            n.get_logger().error("Spin: %s", str(e))
         rclpy.shutdown()
     except KeyboardInterrupt:
         pass
