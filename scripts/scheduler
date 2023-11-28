@@ -76,18 +76,23 @@ class SchedulerNode(Node):
         previously started process with same id will be terminated first 
         before starting the new one."""
         if not args.startswith("ros2"):
+            # launch mpv together with title node?
+            schedule_with_title = os.environ.get("SCHEDULER_TITLE", "true")
+            # launch mpv with respawn flag?
+            schedule_with_respawn = os.environ.get("SCHEDULER_RESPAWN", "false")
             if not id:
                 id = ''.join(map(choice,["bcdfghjklmnpqrstvwxz","aeiouy"]*4))
             ipc = " ipc_server:=/tmp/mpvros-"+id+".sock"
-            list = ','.join("\'{0}\'".format(w) for w in args.split())
-            args = ' args:=[' + list + ']'
-            title = ' title:=true'
+            l = ','.join("\'{0}\'".format(w) for w in args.split())
+            args = ' args:=[' + l + ']'
+            title = ' title:='+schedule_with_title
+            respawn = ' respawn:='+schedule_with_respawn
             ns = " ns:="+self.spawn_ns + id
-            args = "ros2 launch mpvros mpv.launch.py" + ipc + args + ns + title
+            args = "ros2 launch mpvros mpv.launch.py" +ipc+args+ns+title+respawn
         self.get_logger().info(args)
         if id: self.terminate_id(id)
         args = args.split()
-        p = subprocess.Popen(args, preexec_fn=os.setsid)#, start_new_session=True)
+        p = subprocess.Popen(args, preexec_fn=os.setsid)#,start_new_session=True)
         d = { 'pid': p, 'args': args, 'id': id}
         if p: self.pids.append(d)
         return id
