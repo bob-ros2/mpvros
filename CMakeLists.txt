@@ -37,6 +37,7 @@ ament_export_dependencies(rosidl_default_runtime)
 install(PROGRAMS
   scripts/mpv
   scripts/scheduler
+  scripts/scheduler_cli
   scripts/title
   DESTINATION lib/${PROJECT_NAME}
 )

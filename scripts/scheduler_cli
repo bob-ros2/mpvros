@@ -1,0 +1,58 @@
+#!/bin/bash
+# https://mpv.io/manual/master/
+
+[ -n "$SCHEDULER_NS" ] || SCHEDULER_NS=/scheduler
+IDENTIFIER=$SCHEDULER_NS/mpv_
+TOPIC_SCHEDULER=$SCHEDULER_NS/schedule
+
+if [ "$#" -lt 1 ]; then
+    echo "Usage: $(basename $0) <list|schedule|pause> [<param> ...]"
+    exit 1
+fi
+
+send_command() { # topic property_type property_name property_value
+    ros2 topic pub --once $1 std_msgs/String "data: '{ \"command\": [\"$2\", \"$3\", $4] }'"
+}
+
+set_property() { # topic property_name property_value
+    send_command $1 set_property $2 $3
+}
+
+set_pause() { # topic property_value
+    set_property $1 pause $2
+}
+
+topic_pub() { # topic type data
+    ros2 topic pub --once $1 std_msgs/msg/String "{data: '$2' }"
+}
+
+topic_pub_string() { # topic data
+    topic_pub $1 "$2"
+}
+
+if [ "$1" = "list" ]; then
+    ros2 node list |grep "$IDENTIFIER"
+
+elif [ "$1" = "pause" ]; then
+    if [ "$#" -gt 2 ]; then
+        set_pause $2 $3
+    else
+        ros2 topic list |grep "$IDENTIFIER" |grep ipc_in |
+        while read line
+        do
+            set_pause $line $2
+        done
+    fi
+
+else
+    if [ "$1" = "schedule" ]; then
+        if [ -t 0 ]; then
+            topic_pub_string $TOPIC_SCHEDULER "$2"
+        else
+            while read line
+            do
+                topic_pub_string $TOPIC_SCHEDULER "$line" &
+            done
+        fi
+    fi
+fi
