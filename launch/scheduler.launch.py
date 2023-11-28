@@ -36,7 +36,7 @@ def generate_launch_description():
     
     # used namespace for the nodes
     launch_ns = DeclareLaunchArgument('ns', 
-        default_value=TextSubstitution(text='/'))
+        default_value=TextSubstitution(text='/scheduler'))
 
     # respawn node if exiting abnormal
     launch_respawn = DeclareLaunchArgument('respawn', 
