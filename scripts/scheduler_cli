@@ -47,10 +47,12 @@ elif [ "$1" = "pause" ]; then
 else
     if [ "$1" = "schedule" ]; then
         if [ -t 0 ]; then
-            topic_pub_string $TOPIC_SCHEDULER "$2"
+            shift
+            topic_pub_string $TOPIC_SCHEDULER "$@"
         else
             while read line
             do
+                [[ $line =~ ^#.* ]] && continue
                 topic_pub_string $TOPIC_SCHEDULER "$line" &
             done
         fi
