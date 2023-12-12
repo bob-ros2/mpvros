@@ -31,6 +31,7 @@ def generate_launch_description():
 
     random.seed(time.time_ns())
     rand = "%x" % random.getrandbits(24)
+    ns = os.environ.get("SCHEDULER_NS", "/")
 
     # MPV arguments
     launch_args = DeclareLaunchArgument('args', 
@@ -41,7 +42,7 @@ def generate_launch_description():
     
     # used namespace for the nodes
     launch_ns = DeclareLaunchArgument('ns', 
-        default_value=TextSubstitution(text='/'))
+        default_value=TextSubstitution(text=ns))
     
     # start with or without media title updater node
     launch_title = DeclareLaunchArgument('title', 

@@ -31,7 +31,7 @@ from launch.conditions import IfCondition
 
 def generate_launch_description():
 
-    ns_ = os.environ.get("SCHEDULER_NS", "/scheduler")
+    ns = os.environ.get("SCHEDULER_NS", "/scheduler")
 
     # used name for the node
     launch_name = DeclareLaunchArgument('name', 
@@ -39,7 +39,7 @@ def generate_launch_description():
     
     # used namespace for the nodes
     launch_ns = DeclareLaunchArgument('ns', 
-        default_value=TextSubstitution(text=ns_))
+        default_value=TextSubstitution(text=ns))
 
     # respawn node if exiting abnormal
     launch_respawn = DeclareLaunchArgument('respawn', 
