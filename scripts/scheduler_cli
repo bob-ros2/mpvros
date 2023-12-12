@@ -6,7 +6,7 @@ IDENTIFIER=$SCHEDULER_NS/mpv_
 TOPIC_SCHEDULER=$SCHEDULER_NS/schedule
 
 if [ "$#" -lt 1 ]; then
-    echo "Usage: $(basename $0) <list|schedule|pause> [<param> ...]"
+    echo "Usage: $(basename $0) <list|schedule|schedule_named|pause> [<param> ...]"
     exit 1
 fi
 
@@ -30,6 +30,10 @@ topic_pub_string() { # topic data
     topic_pub $1 "$2"
 }
 
+schedule_named() { # topic name args
+    ros2 action send_goal $1 mpvros/action/Schedule "{ id: $2, args: $3 }"
+}
+
 if [ "$1" = "list" ]; then
     ros2 node list |grep "$IDENTIFIER"
 
@@ -43,6 +47,10 @@ elif [ "$1" = "pause" ]; then
             set_pause $line $2
         done
     fi
+
+
+elif [ "$1" = "schedule_named" ]; then
+    schedule_named $2 $3 "$4"
 
 else
     if [ "$1" = "schedule" ]; then
