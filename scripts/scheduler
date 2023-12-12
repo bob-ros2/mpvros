@@ -92,7 +92,9 @@ class SchedulerNode(Node):
         self.get_logger().info(args)
         if id: self.terminate_id(id)
         args = args.split()
-        p = subprocess.Popen(args, preexec_fn=os.setsid)#,start_new_session=True)
+        p = subprocess.Popen(args, 
+            env = os.environ.copy(),
+            preexec_fn = os.setsid)#,start_new_session=True)
         d = { 'pid': p, 'args': args, 'id': id}
         if p: self.pids.append(d)
         return id
