@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
 import random
 import time
 from launch import LaunchDescription
@@ -30,13 +31,15 @@ from launch.conditions import IfCondition
 
 def generate_launch_description():
 
+    ns_ = os.environ.get("SCHEDULER_NS", "/scheduler")
+
     # used name for the node
     launch_name = DeclareLaunchArgument('name', 
         default_value=TextSubstitution(text='scheduler'))
     
     # used namespace for the nodes
     launch_ns = DeclareLaunchArgument('ns', 
-        default_value=TextSubstitution(text='/scheduler'))
+        default_value=TextSubstitution(text=ns_))
 
     # respawn node if exiting abnormal
     launch_respawn = DeclareLaunchArgument('respawn', 
