@@ -31,11 +31,13 @@ class SchedulerNode(Node):
         super().__init__('scheduler')
         self.pids = []
 
+        ns = os.environ.get("SCHEDULER_NS", "/scheduler")
+
         self.declare_parameter( 
             'screen', '', ParameterDescriptor(
             description='Default screen where to show MPV player.'))
         self.declare_parameter(
-            'spawn_ns', '/scheduler/mpv_', ParameterDescriptor(
+            'spawn_ns', ns+'/mpv_', ParameterDescriptor(
             description='Namespace where spawned MPV ROS nodes apear.'))
         
         self.spawn_ns = self.get_parameter(
